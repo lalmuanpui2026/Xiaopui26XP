@@ -3,37 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XP Card Game</title>
+    <title>XP Card Game - Moonlight</title>
     <style>
-        body { background: #0b132b; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; }
-        .table { background: radial-gradient(circle, #1a4314, #0a2005); height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .lantern { position: absolute; top: 20px; right: 20px; width: 60px; height: 80px; background: #d8a45f; border-radius: 10px; box-shadow: 0 0 50px #ff9f1c; opacity: 0.8; }
-        .card-area { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-        .card { width: 70px; height: 100px; background: white; color: black; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #ccc; }
-        button { background: #d8a45f; border: none; padding: 15px 30px; font-size: 18px; border-radius: 30px; color: #1a1a1a; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .status { margin-top: 20px; font-size: 1.1em; color: #f1faee; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; }
+        :root { --gold: #d8a45f; --night: #0b132b; --table: #1a4314; }
+        body { background: var(--night); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow: hidden; }
+        
+        /* Moonlight & Atmosphere */
+        .moon { position: absolute; top: 40px; left: 40px; width: 80px; height: 80px; background: #f1faee; border-radius: 50%; box-shadow: 0 0 40px #f1faee; }
+        .table { background: radial-gradient(circle, var(--table), #051103); height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 15px solid #2a1810; box-sizing: border-box; }
+        
+        /* Lantern & Fireflies */
+        .lantern { position: absolute; top: 30px; right: 40px; width: 50px; height: 70px; background: var(--gold); border-radius: 5px; box-shadow: 0 0 60px #ff9f1c; animation: flicker 2s infinite; }
+        @keyframes flicker { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+
+        /* Music Player UI */
+        .music-player { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 15px; border: 1px solid var(--gold); width: 200px; text-align: left; }
+        .music-player h4 { margin: 0 0 10px 0; font-size: 14px; color: var(--gold); }
+        input[type="file"] { font-size: 10px; width: 100%; }
+
+        /* Game Elements */
+        .card-area { display: flex; gap: 15px; margin: 30px 0; perspective: 1000px; }
+        .card { width: 80px; height: 120px; background: #fff; color: #000; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); transform: rotateY(0deg); transition: 0.6s; }
+        
+        button { background: var(--gold); color: #1a1a1a; border: none; padding: 15px 40px; font-size: 18px; border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
+        button:active { transform: scale(0.95); }
+        
+        .tea-cup { position: absolute; bottom: 40px; right: 60px; font-size: 40px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
     </style>
 </head>
 <body>
+
     <div class="table">
+        <div class="moon"></div>
         <div class="lantern"></div>
-        <h1>🌙 XP Card Game</h1>
-        <div id="game-info">ချင်းရိုးရာ လရောင်အောက်ဝိုင်းလေးမှ ကြိုဆိုပါတယ်</div>
-        
-        <div class="card-area" id="card-display"></div>
-        
-        <button onclick="setupGame()">ကတ်စနှိုက်မယ်</button>
-        
-        <div class="status" id="result-panel" style="display:none;"></div>
+        <div class="tea-cup">🍵<br><small style="font-size:10px; color:var(--gold);">Palm Jaggery</small></div>
+
+        <h1 style="margin:0; text-shadow: 0 0 10px var(--gold);">XP Card Game</h1>
+        <p style="opacity:0.7;">Chin Village Moonlight Gathering</p>
+
+        <div class="card-area" id="display">
+            </div>
+
+        <button onclick="playRound()">ကတ်စနှိုက်မယ်</button>
+
+        <div id="result" style="margin-top:20px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; min-width: 250px;">
+            နေရာရွေးရန် ခလုတ်ကိုနှိပ်ပါ
+        </div>
+
+        <div class="music-player">
+            <h4>🎵 Music Player</h4>
+            <input type="file" id="audio-upload" accept="audio/*" onchange="loadMusic(event)">
+            <audio id="bg-music" controls style="width: 100%; margin-top:10px; height: 30px;"></audio>
+        </div>
     </div>
 
     <script>
         const suits = ['♠', '♥', '♦', '♣'];
-        const suitNames = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
         const ranks = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-        function setupGame() {
-            let drawnCards = [];
+        function playRound() {
+            let drawn = [];
+            const display = document.getElementById('display');
+            display.innerHTML = '';
+
+            for(let i=0; i<4; i++) {
+                let rIdx = Math.floor(Math.random() * ranks.length);
+                let sIdx = Math.floor(Math.random() * suits.length);
+                let card = { rank: ranks[rIdx], suit: suits[sIdx], power: (13-rIdx)*10 + (4-sIdx), pName: i+1 };
+                drawn.push(card);
+
+                // Add to UI
+                let color = (card.suit === '♥' || card.suit === '♦') ? '#d90429' : '#2b2d42';
+                display.innerHTML += `<div class="card" style="color:${color}">${card.rank}<br>${card.suit}</div>`;
+            }
+
+            let sorted = [...drawn].sort((a,b) => b.power - a.power);
+            document.getElementById('result').innerHTML = `
+                <b style="color:var(--gold)">👑 Selector (P1):</b> Player ${sorted[0].pName}<br>
+                <b>🃏 Dealer (P4):</b> Player ${sorted[3].pName}<br><br>
+                <span style="border-top: 1px solid #555; display:block; margin-top:5px; padding-top:5px;">
+                <b>Team A:</b> P${sorted[0].pName} & P${sorted[2].pName}<br>
+                <b>Team B:</b> P${sorted[1].pName} & P${sorted[3].pName}
+                </span>
+            `;
+        }
+
+        function loadMusic(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const audio = document.getElementById('bg-music');
+                audio.src = e.target.result;
+                audio.play();
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>
             for(let i=0; i<4; i++) {
                 let rIdx = Math.floor(Math.random() * ranks.length);
                 let sIdx = Math.floor(Math.random() * suits.length);
