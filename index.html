@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XP Card Game</title>
+    <style>
+        body { background: #0b132b; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow: hidden; }
+        .table { background: radial-gradient(circle, #1a4314, #0a2005); height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .lantern { position: absolute; top: 20px; right: 20px; width: 60px; height: 80px; background: #d8a45f; border-radius: 10px; box-shadow: 0 0 50px #ff9f1c; opacity: 0.8; }
+        .card-area { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+        .card { width: 70px; height: 100px; background: white; color: black; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #ccc; }
+        button { background: #d8a45f; border: none; padding: 15px 30px; font-size: 18px; border-radius: 30px; color: #1a1a1a; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .status { margin-top: 20px; font-size: 1.1em; color: #f1faee; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="table">
+        <div class="lantern"></div>
+        <h1>🌙 XP Card Game</h1>
+        <div id="game-info">ချင်းရိုးရာ လရောင်အောက်ဝိုင်းလေးမှ ကြိုဆိုပါတယ်</div>
+        
+        <div class="card-area" id="card-display"></div>
+        
+        <button onclick="setupGame()">ကတ်စနှိုက်မယ်</button>
+        
+        <div class="status" id="result-panel" style="display:none;"></div>
+    </div>
+
+    <script>
+        const suits = ['♠', '♥', '♦', '♣'];
+        const suitNames = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+        const ranks = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+        function setupGame() {
+            let drawnCards = [];
+            for(let i=0; i<4; i++) {
+                let rIdx = Math.floor(Math.random() * ranks.length);
+                let sIdx = Math.floor(Math.random() * suits.length);
+                drawnCards.push({
+                    rank: ranks[rIdx],
+                    suit: suits[sIdx],
+                    suitName: suitNames[sIdx],
+                    power: (13 - rIdx) * 10 + (4 - sIdx)
+                });
+            }
+
+            const display = document.getElementById('card-display');
+            display.innerHTML = '';
+            drawnCards.forEach(c => {
+                let color = (c.suit === '♥' || c.suit === '♦') ? 'red' : 'black';
+                display.innerHTML += `<div class="card" style="color:${color}">${c.rank}<br>${c.suit}</div>`;
+            });
+
+            let sorted = [...drawnCards].map((c, i) => ({...c, player: i+1}));
+            sorted.sort((a, b) => b.power - a.power);
+
+            const panel = document.getElementById('result-panel');
+            panel.style.display = 'block';
+            panel.innerHTML = `
+                <b>👑 Trump Selector (P1):</b> Player ${sorted[0].player}<br>
+                <b>🃏 Dealer (P4):</b> Player ${sorted[3].player}<br><br>
+                <b>Team A:</b> P${sorted[0].player} + P${sorted[2].player}<br>
+                <b>Team B:</b> P${sorted[1].player} + P${sorted[3].player}
+            `;
+        }
+    </script>
+</body>
+</html>
