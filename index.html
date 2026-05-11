@@ -3,305 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XP Card Game - Full Edition</title>
+    <title>XP Card Game - Traditional 4P</title>
     <style>
         :root { --gold: #d8a45f; --night: #0b132b; --table: #1a4314; --wood: #2a1810; }
-        body { background: var(--night); color: white; font-family: sans-serif; margin: 0; overflow: hidden; touch-action: manipulation; }
-        
-        .screen { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; transition: 0.5s; display: none; }
-        .active-screen { display: block; }
-
-        /* Table Design */
+        body { background: var(--night); color: white; font-family: sans-serif; margin: 0; overflow: hidden; }
         .table { background: radial-gradient(circle, var(--table), #051103); height: 100vh; position: relative; border: 12px solid var(--wood); box-sizing: border-box; }
         
-        /* Scattered Deck View */
-        #deck-container { height: 60%; position: relative; margin-top: 60px; }
-        .hidden-card { width: 50px; height: 75px; background: #911; border: 2px solid white; border-radius: 5px; position: absolute; cursor: pointer; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        /* 🏠 Trick Piles (အိမ်ပုံများ) */
+        .trick-pile { 
+            position: absolute; width: 40px; height: 60px; 
+            border: 2px solid rgba(216, 164, 95, 0.2); border-radius: 5px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 16px; font-weight: bold; background: rgba(0,0,0,0.5);
+        }
+        .pile-1 { bottom: 200px; left: 40%; }
+        .pile-2 { right: 130px; top: 40%; }
+        .pile-3 { top: 160px; left: 40%; }
+        .pile-4 { left: 130px; top: 40%; }
 
-        /* Player UI positions */
-        .player-label { position: absolute; padding: 5px 10px; border-radius: 5px; background: rgba(0,0,0,0.6); font-size: 12px; border: 1px solid var(--gold); }
-        .p-bottom { bottom: 120px; left: 50%; transform: translateX(-50%); }
-        .p-left { left: 20px; top: 50%; transform: translateY(-50%) rotate(90deg); }
-        .p-top { top: 70px; left: 50%; transform: translateX(-50%); }
-        .p-right { right: 20px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
-        .active-turn { background: var(--gold); color: black; box-shadow: 0 0 15px var(--gold); }
+        /* 👤 Player Position (ကတ်ချမည့်နေရာများ) */
+        .slot { position: absolute; width: 55px; height: 80px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .slot-1 { bottom: 180px; left: 50%; transform: translateX(-50%); }
+        .slot-2 { right: 80px; top: 50%; transform: translateY(-50%); }
+        .slot-3 { top: 140px; left: 50%; transform: translateX(-50%); }
+        .slot-4 { left: 80px; top: 50%; transform: translateY(-50%); }
 
-        /* Hand & Play Area */
-        .hand { position: absolute; bottom: 10px; width: 100%; display: flex; justify-content: center; gap: 5px; z-index: 100; }
-        .card { width: 55px; height: 85px; background: white; color: black; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 1px solid #999; cursor: pointer; transition: 0.2s; }
-        .card:hover { transform: translateY(-20px); }
+        /* 🏷️ Name Labels */
+        .label { position: absolute; padding: 4px 10px; border-radius: 5px; font-size: 11px; z-index: 100; border: 1px solid var(--gold); background: black; }
+        .l1 { bottom: 145px; left: 50%; transform: translateX(-50%); }
+        .l2 { right: 15px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+        .l3 { top: 100px; left: 50%; transform: translateX(-50%); }
+        .l4 { left: 15px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+        .active { background: var(--gold); color: black; font-weight: bold; box-shadow: 0 0 15px var(--gold); }
+
+        /* 🎴 Cards */
+        .card { 
+            width: 55px; height: 80px; background: white; color: black; border-radius: 6px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            font-weight: bold; border: 1px solid #999; cursor: pointer; font-size: 18px; box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+        }
         .card.red { color: #d00; }
+        .hand { position: absolute; bottom: 15px; width: 100%; display: flex; justify-content: center; gap: 5px; }
+        
+        .played-card { animation: cardIn 0.3s ease-out forwards; }
+        @keyframes cardIn { from { opacity: 0; transform: scale(1.2); } to { opacity: 1; transform: scale(1); } }
 
-        .center-area { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; }
-        .played-card { position: absolute; width: 55px; height: 85px; background: white; border-radius: 5px; color: black; border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-
-        /* Panels */
-        .status-msg { position: absolute; top: 20px; width: 100%; text-align: center; color: var(--gold); font-weight: bold; font-size: 18px; }
-        .score-board { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; font-size: 12px; border: 1px solid var(--gold); }
-        .trump-indicator { position: absolute; top: 15px; right: 15px; font-size: 24px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 8px; color: var(--gold); }
-
-        /* Music Box */
-        .music-box { position: absolute; bottom: 150px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; border: 1px solid var(--gold); width: 150px; z-index: 500; font-size: 10px; }
-        #playlist { height: 50px; overflow-y: auto; margin-top: 5px; border-top: 1px solid #444; }
-
-        /* Modal */
-        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--wood); border: 3px solid var(--gold); padding: 20px; z-index: 1000; text-align: center; border-radius: 15px; box-shadow: 0 0 50px black; }
-        .trump-btn { font-size: 30px; margin: 5px; padding: 10px; cursor: pointer; background: #444; border: 1px solid var(--gold); border-radius: 10px; }
+        .scoreboard { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.7); padding: 8px; border-radius: 8px; border: 1px solid var(--gold); font-size: 12px; }
     </style>
 </head>
 <body>
 
-<div id="screen-seats" class="screen active-screen">
-    <div class="table">
-        <div class="status-msg" id="seat-status">နေရာရွေးရန် ကတ်တစ်ကတ်နှိုက်ပါ (P1 Turn)</div>
-        <div id="deck-container"></div>
-        <div id="seat-results" class="modal" style="display:none;">
-            <h3>ရလဒ်များ</h3>
-            <div id="seat-text"></div>
-            <button onclick="goToGame()" style="margin-top:15px; padding:10px 20px; background:var(--gold); border:none; border-radius:20px; font-weight:bold;">ပွဲစမယ်</button>
-        </div>
+<div class="table">
+    <div class="scoreboard">
+        Team A (1&3): <b id="score-a" style="color:var(--gold)">0</b><br>
+        Team B (2&4): <b id="score-b" style="color:var(--gold)">0</b>
     </div>
-</div>
 
-<div id="screen-game" class="screen">
-    <div class="table">
-        <div class="score-board">
-            Team A (1,3): <span id="score-a">0</span> <br>
-            Team B (2,4): <span id="score-b">0</span>
-        </div>
-        <div class="trump-indicator" id="trump-view">?</div>
-        <div class="status-msg" id="game-status">ဝေနေသည်...</div>
+    <div id="slot-1" class="slot slot-1"></div>
+    <div id="slot-2" class="slot slot-2"></div>
+    <div id="slot-3" class="slot slot-3"></div>
+    <div id="slot-4" class="slot slot-4"></div>
 
-        <div id="label-1" class="player-label p-bottom">P1</div>
-        <div id="label-2" class="player-label p-right">P2</div>
-        <div id="label-3" class="player-label p-top">P3</div>
-        <div id="label-4" class="player-label p-left">P4</div>
+    <div id="pile-1" class="trick-pile pile-1">0</div>
+    <div id="pile-2" class="trick-pile pile-2">0</div>
+    <div id="pile-3" class="trick-pile pile-3">0</div>
+    <div id="pile-4" class="trick-pile pile-4">0</div>
 
-        <div class="center-area" id="trick-area"></div>
+    <div id="lbl-1" class="label l1">P1 (Selector)</div>
+    <div id="lbl-2" class="label l2">P2</div>
+    <div id="lbl-3" class="label l3">P3</div>
+    <div id="lbl-4" class="label l4">P4 (Dealer)</div>
 
-        <div class="hand" id="my-hand"></div>
-
-        <div id="trump-modal" class="modal" style="display:none;">
-            <h4>Trump Suit ရွေးပါ</h4>
-            <div id="trump-options">
-                <button class="trump-btn" onclick="selectTrump('♠')">♠</button>
-                <button class="trump-btn" onclick="selectTrump('♥')">♥</button>
-                <button class="trump-btn" onclick="selectTrump('♦')">♦</button>
-                <button class="trump-btn" onclick="selectTrump('♣')">♣</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="music-box">
-    <b style="color:var(--gold)">🎶 XP Music</b>
-    <input type="file" id="music-files" webkitdirectory directory multiple style="width:100%">
-    <div id="playlist"></div>
-    <audio id="audio-player" controls style="width:100%; height:20px; margin-top:5px;"></audio>
+    <div class="hand" id="my-hand"></div>
 </div>
 
 <script>
-    const SUITS = ['♠', '♥', '♦', '♣'];
-    const RANKS = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
-    let fullDeck = [];
-    let seatPicks = [];
-    let players = []; // {id, team, hand, name}
-    let trumpSuit = '';
-    let currentDealer = 0;
-    let currentSelector = 0;
-    let turn = 0; // index of players
-    let currentTrick = [];
-    let scoreA = 0, scoreB = 0;
-    let myID = 1; // Simulation: You are Player 1
+    const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+    let deck = [], players = [], trump = '♠', turn = 0, currentTrick = [], tricksWon = [0,0,0,0];
 
-    // 1. INITIALIZE DECK & SEAT PICKING
-    function init() {
-        const container = document.getElementById('deck-container');
-        for (let i = 0; i < 52; i++) {
-            let card = document.createElement('div');
-            card.className = 'hidden-card';
-            card.style.left = Math.random() * 80 + 5 + '%';
-            card.style.top = Math.random() * 70 + 5 + '%';
-            card.style.transform = `rotate(${Math.random() * 40 - 20}deg)`;
-            card.onclick = () => pickSeat(card, i);
-            container.appendChild(card);
-            fullDeck.push({ rank: RANKS[i%13], suit: SUITS[Math.floor(i/13)], power: (13-(i%13))*10 + (4-Math.floor(i/13)) });
-        }
+    function setupMatch() {
+        players = [{id:1, hand:[]}, {id:2, hand:[]}, {id:3, hand:[]}, {id:4, hand:[]}];
+        deck = [];
+        SUITS.forEach(s => RANKS.forEach(r => deck.push({r, s})));
+        deck.sort(() => Math.random() - 0.5);
+        players.forEach(p => p.hand = deck.splice(0, 13));
+        render();
     }
 
-    function pickSeat(el, idx) {
-        if (seatPicks.length >= 4) return;
-        el.style.display = 'none';
-        seatPicks.push({ ...fullDeck[idx], pID: seatPicks.length + 1 });
-        document.getElementById('seat-status').innerText = `P${seatPicks.length + 1} Turn...`;
-        if (seatPicks.length === 4) {
-            let sorted = [...seatPicks].sort((a,b) => b.power - a.power);
-            currentSelector = sorted[0].pID;
-            currentDealer = sorted[3].pID;
-            document.getElementById('seat-results').style.display = 'block';
-            document.getElementById('seat-text').innerHTML = `👑 Selector: P${currentSelector}<br>🃏 Dealer: P${currentDealer}<br>Team A: P${sorted[0].pID} & P${sorted[2].pID}`;
-        }
-    }
-
-    function goToGame() {
-        document.getElementById('screen-seats').classList.remove('active-screen');
-        document.getElementById('screen-game').classList.add('active-screen');
-        startNewMatch();
-    }
-
-    // 2. GAMEPLAY LOGIC
-    function startNewMatch() {
-        // Setup Players
-        players = [
-            { id: 1, team: 'A', hand: [] }, { id: 2, team: 'B', hand: [] },
-            { id: 3, team: 'A', hand: [] }, { id: 4, team: 'B', hand: [] }
-        ];
+    function playCard(pIdx, cIdx) {
+        if (turn !== pIdx) return;
+        let card = players[pIdx].hand.splice(cIdx, 1)[0];
+        currentTrick.push({card, pIdx});
         
-        // Shuffle & Deal first 5 to selector
-        shuffleDeck();
-        dealCards(5);
+        // ကတ်ကို သူ့နေရာနဲ့သူ ပေါ်အောင်လုပ်ခြင်း
+        const slot = document.getElementById(`slot-${pIdx+1}`);
+        let color = (card.s==='♥'||card.s==='♦') ? 'red' : 'black';
+        slot.innerHTML = `<div class="card played-card" style="color:${color}">${card.r}${card.s}</div>`;
         
-        if (currentSelector === myID) {
-            document.getElementById('trump-modal').style.display = 'block';
-            document.getElementById('game-status').innerText = "Trump Suit ရွေးပါ";
-        } else {
-            // AI select random trump
-            selectTrump(SUITS[Math.floor(Math.random()*4)]);
-        }
-    }
-
-    function selectTrump(suit) {
-        trumpSuit = suit;
-        document.getElementById('trump-view').innerText = suit;
-        document.getElementById('trump-modal').style.display = 'none';
-        dealCards(8); // Deal remaining
-        turn = currentDealer % 4; // Start with person to left of dealer
-        updateUI();
-        nextTurn();
-    }
-
-    function dealCards(count) {
-        let deckIdx = 0;
-        players.forEach(p => {
-            for(let i=0; i<count; i++) p.hand.push(fullDeck.pop());
-        });
-    }
-
-    function nextTurn() {
-        updateUI();
-        let p = players[turn];
-        document.getElementById('game-status').innerText = `P${p.id}'s Turn (${p.suit || ''})`;
-        
-        if (p.id !== myID) {
-            setTimeout(() => autoPlay(p), 1000);
-        }
-    }
-
-    function playCard(cardIdx, playerObj) {
-        let card = playerObj.hand.splice(cardIdx, 1)[0];
-        currentTrick.push({ card, player: playerObj });
-        renderTrick();
-        
+        render();
         turn = (turn + 1) % 4;
-        if (currentTrick.length === 4) {
-            setTimeout(resolveTrick, 1000);
-        } else {
-            nextTurn();
-        }
+        if (currentTrick.length === 4) setTimeout(resolveTrick, 1000);
+        else if (turn !== 0) setTimeout(aiPlay, 800);
     }
 
-    function autoPlay(p) {
-        // Simple AI: Play first valid card
-        let idx = 0;
-        if (currentTrick.length > 0) {
-            let leadSuit = currentTrick[0].card.suit;
-            let matchIdx = p.hand.findIndex(c => c.suit === leadSuit);
-            if (matchIdx !== -1) idx = matchIdx;
-        }
-        playCard(idx, p);
+    function aiPlay() {
+        let p = players[turn];
+        let lead = currentTrick[0].card.s;
+        let idx = p.hand.findIndex(c => c.s === lead);
+        if (idx === -1) idx = 0;
+        playCard(turn, idx);
     }
 
     function resolveTrick() {
-        let leadSuit = currentTrick[0].card.suit;
-        let winnerObj = currentTrick[0];
-        
+        let lead = currentTrick[0].card.s;
+        let winner = currentTrick[0];
         currentTrick.forEach(t => {
-            let isTrump = t.card.suit === trumpSuit;
-            let winTrump = winnerObj.card.suit === trumpSuit;
-            
-            if (isTrump && !winTrump) winnerObj = t;
-            else if (isTrump && winTrump) {
-                if (RANKS.indexOf(t.card.rank) < RANKS.indexOf(winnerObj.card.rank)) winnerObj = t;
-            }
-            else if (!winTrump && t.card.suit === leadSuit) {
-                if (RANKS.indexOf(t.card.rank) < RANKS.indexOf(winnerObj.card.rank)) winnerObj = t;
-            }
+            if (t.card.s === trump && winner.card.s !== trump) winner = t;
+            else if (t.card.s === winner.card.s && RANKS.indexOf(t.card.r) < RANKS.indexOf(winner.card.r)) winner = t;
+            else if (t.card.s === lead && winner.card.s !== trump && RANKS.indexOf(t.card.r) < RANKS.indexOf(winner.card.r)) winner = t;
         });
 
-        if (winnerObj.player.team === 'A') scoreA++; else scoreB++;
-        
-        document.getElementById('score-a').innerText = scoreA;
-        document.getElementById('score-b').innerText = scoreB;
-        
-        turn = players.indexOf(winnerObj.player);
-        currentTrick = [];
-        document.getElementById('trick-area').innerHTML = '';
-        
-        if (players[0].hand.length > 0) nextTurn();
-        else alert("Match Over! Score: " + scoreA + " - " + scoreB);
+        tricksWon[winner.pIdx]++;
+        document.getElementById(`pile-${winner.pIdx+1}`).innerText = tricksWon[winner.pIdx];
+        document.getElementById(`pile-${winner.pIdx+1}`).style.borderColor = "var(--gold)";
+
+        // Score Update
+        document.getElementById('score-a').innerText = tricksWon[0] + tricksWon[2];
+        document.getElementById('score-b').innerText = tricksWon[1] + tricksWon[3];
+
+        setTimeout(() => {
+            for(let i=1; i<=4; i++) document.getElementById(`slot-${i}`).innerHTML = '';
+            document.querySelectorAll('.trick-pile').forEach(p => p.style.borderColor = "rgba(216,164,95,0.2)");
+            currentTrick = [];
+            turn = winner.pIdx;
+            render();
+            if (players[0].hand.length > 0 && turn !== 0) aiPlay();
+        }, 1000);
     }
 
-    // 3. UI HELPERS
-    function updateUI() {
+    function render() {
         const handDiv = document.getElementById('my-hand');
         handDiv.innerHTML = '';
-        players[0].hand.forEach((c, i) => {
+        players[0].hand.sort((a,b) => SUITS.indexOf(a.s) - SUITS.indexOf(b.s)).forEach((c, i) => {
             let div = document.createElement('div');
-            div.className = `card ${ (c.suit==='♥'||c.suit==='♦')?'red':'' }`;
-            div.innerHTML = `<span>${c.rank}</span><span>${c.suit}</span>`;
-            div.onclick = () => { if(turn===0) playCard(i, players[0]); };
+            div.className = `card ${(c.s==='♥'||c.s==='♦')?'red':''}`;
+            div.innerHTML = `${c.r}<br>${c.s}`;
+            div.onclick = () => playCard(0, i);
             handDiv.appendChild(div);
         });
-
-        for(let i=1; i<=4; i++) {
-            document.getElementById(`label-${i}`).classList.remove('active-turn');
-        }
-        document.getElementById(`label-${players[turn].id}`).classList.add('active-turn');
+        for(let i=1; i<=4; i++) document.getElementById(`lbl-${i}`).className = `label l${i} ${turn===i-1?'active':''}`;
     }
 
-    function renderTrick() {
-        const area = document.getElementById('trick-area');
-        area.innerHTML = '';
-        currentTrick.forEach((t, i) => {
-            let div = document.createElement('div');
-            div.className = 'played-card';
-            div.style.top = [40, 20, 0, 20][(players.indexOf(t.player))] + 'px';
-            div.style.left = [20, 40, 20, 0][(players.indexOf(t.player))] + 'px';
-            div.innerText = t.card.rank + t.card.suit;
-            area.appendChild(div);
-        });
-    }
-
-    function shuffleDeck() {
-        fullDeck = [];
-        SUITS.forEach(s => RANKS.forEach(r => fullDeck.push({rank:r, suit:s})));
-        fullDeck.sort(() => Math.random() - 0.5);
-    }
-
-    // MUSIC LOGIC
-    document.getElementById('music-files').addEventListener('change', function(e) {
-        const list = document.getElementById('playlist');
-        const audio = document.getElementById('audio-player');
-        list.innerHTML = '';
-        Array.from(e.target.files).filter(f => f.type.includes('audio')).forEach(f => {
-            let d = document.createElement('div');
-            d.innerText = f.name;
-            d.onclick = () => { audio.src = URL.createObjectURL(f); audio.play(); };
-            list.appendChild(d);
-        });
-    });
-
-    init();
+    setupMatch();
 </script>
 </body>
 </html>
